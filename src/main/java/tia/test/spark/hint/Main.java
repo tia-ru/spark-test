@@ -92,13 +92,13 @@ public class Main implements AutoCloseable {
     private static final int OBJ_TYPE_SUBSIDIARY = 0b0010;
     private static final int OBJ_TYPE_ENTREPRENEUR = 0b0100;
     private static final int DEFAULT_COUNT = 3;
+    private static final int THROTTLE_MS = 10;//1000 ms/10ms = 100 requests/sec
 
-
-    private final Meter meter = new Meter();
     private Phaser phaser = new Phaser(1);
     private OkHttpClient okHttpClient;
     private String login;
     private String pwd;
+    private final Meter meter;
 
     public static void main(String[] args) throws Exception {
 
@@ -114,27 +114,38 @@ public class Main implements AutoCloseable {
         if (args.length >= 3) {
             reqCount = Integer.parseInt(args[2]);
         }
-
-        try(Main m = new Main(login, pwd)) {
+        Meter meter = new Meter();
+        try(Main m = new Main(login, pwd, meter)) {
 
             /*System.out.println("===================== YANDEX HTTP ==============================================");
             m.testYandex(3);*/
 
             System.out.println("===================== SPARK HTTP REST ==========================================");
+            //Warm up
+            m.testSparkRest(reqCount / 5);
+            meter.clear();
             m.testSparkRest(reqCount);
+            meter.reportAndClear();
 
             System.out.println("===================== SPARK gRPC ===============================================");
+            m.testSparkGrpc(reqCount / 5);
+            meter.clear();
             m.testSparkGrpc(reqCount);
+            meter.reportAndClear();
 
             System.out.println("===================== SPARK SOAP ===============================================");
+            m.testSparkSoap(reqCount / 5);
+            meter.clear();
             m.testSparkSoap(reqCount);
+            meter.reportAndClear();
         }
 
     }
 
-    public Main(String login, String pwd) {
+    public Main(String login, String pwd, Meter meter) {
         this.login = login;
         this.pwd = pwd;
+        this.meter = meter;
 
         java.util.logging.Logger rootLogger = LogManager.getLogManager().getLogger("");
         Handler[] handlers = rootLogger.getHandlers();
@@ -210,8 +221,10 @@ public class Main implements AutoCloseable {
                 .url("http://hint-devel.spark-interfax.ru/search?query=Интер&regions=1&count=45")
                 .get()
                 .build();
+        Throttler throttler = new Throttler(THROTTLE_MS);
         for (int i = 0; i < count; i++) {
             phaser.register();
+            throttler.pause();
             okHttpClient.newCall(request).enqueue(
                     new Callback() {
                         @Override
@@ -231,7 +244,6 @@ public class Main implements AutoCloseable {
 
         }
         phaser.arriveAndAwaitAdvance();
-        meter.reportAndClear();
     }
 
     private void testSparkGrpc(int count) throws InterruptedException {
@@ -246,15 +258,16 @@ public class Main implements AutoCloseable {
                 //.setObjectTypes(OBJ_TYPE_COMPANY | OBJ_TYPE_ENTREPRENEUR | OBJ_TYPE_SUBSIDIARY)
                 .setCount(45) // 1-50
                 .build();
-
         try {
             ExtHintServiceGrpc.ExtHintServiceBlockingStub stub = ExtHintServiceGrpc.newBlockingStub(channel);
             ExtHint.HintResponse hintResponse = stub.autocomplete(payload);
             logger.debug("OK. Found: {}", hintResponse.getValuesList().size());
 
             ExtHintServiceGrpc.ExtHintServiceStub serviceStub = ExtHintServiceGrpc.newStub(channel);
+            Throttler throttler = new Throttler(THROTTLE_MS);
             for (int i = 0; i < count; i++) {
                 phaser.register();
+                throttler.pause();
                 serviceStub.autocomplete(payload, new StreamObserver<ExtHint.HintResponse>() {
                     @Override
                     public void onNext(ExtHint.HintResponse hintResponse) {
@@ -287,7 +300,6 @@ public class Main implements AutoCloseable {
             // resources the channel should be shut down when it will no longer be used. If it may be used
             // again leave it running.
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-            meter.reportAndClear();
         }
     }
 
@@ -333,16 +345,17 @@ public class Main implements AutoCloseable {
         /*WebClient.getConfig(proxy).getRequestContext().put(
                 org.apache.cxf.message.Message.MAINTAIN_SESSION, Boolean.TRUE);*/
 
-
         String result = spark.authmethod(login, pwd);
         if (!"True".equals(result)){
             logger.error("AuthN failed. Result: {}", result);
             return;
         }
+        Throttler throttler = new Throttler(THROTTLE_MS);
         for (int i = 0; i < count; i++) {
             Holder<String> resultHolder = new Holder<>();
             Holder<String> xmlDataHolder = new Holder<>();
             phaser.register();
+            throttler.pause();
             spark.getCompanyListByNameAsync("Интер", "1", "0", "1",
                     resultHolder, xmlDataHolder, response -> {
                         try {
@@ -355,10 +368,8 @@ public class Main implements AutoCloseable {
                         phaser.arriveAndDeregister();
                     });
         }
-        spark.end();
-
 
         phaser.arriveAndAwaitAdvance();
-        meter.reportAndClear();
+        spark.end();
     }
 }

@@ -10,7 +10,7 @@ import io.micrometer.core.instrument.util.HierarchicalNameMapper;
 
 import java.util.concurrent.TimeUnit;
 
-public class Meter {
+public class Meter implements AutoCloseable {
     private final MeterRegistry registry;
     public final ConsoleReporter consoleReporter;
 
@@ -66,6 +66,7 @@ public class Meter {
         registry.clear();
     }
 
+    @Override
     public void close(){
         consoleReporter.close();
         registry.close();

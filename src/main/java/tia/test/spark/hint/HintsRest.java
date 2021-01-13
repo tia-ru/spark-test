@@ -18,15 +18,13 @@ import java.net.CookieManager;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 
-public class SparkRest implements AutoCloseable {
-    private static final Logger logger = LoggerFactory.getLogger(SparkRest.class);
+public class HintsRest implements AutoCloseable {
+    private static final Logger logger = LoggerFactory.getLogger(HintsRest.class);
 
     private final OkHttpClient okHttpClient;
-    @NotNull
-    private final Meter meter;
+    private final Throttler throttler;
 
-    public SparkRest(Meter meter) {
-        this.meter = meter;
+    public HintsRest(Meter meter, Throttler throttler) {
 
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
         loggingInterceptor.level(HttpLoggingInterceptor.Level.BASIC);
@@ -45,6 +43,7 @@ public class SparkRest implements AutoCloseable {
                 //.addNetworkInterceptor(loggingInterceptor)
                 //.addInterceptor(loggingInterceptor)
                 .build();
+        this.throttler = throttler;
     }
 
     public void testSparkRest(int count) {
@@ -58,7 +57,6 @@ public class SparkRest implements AutoCloseable {
                 .url("http://hint-devel.spark-interfax.ru/search?query=Интер&regions=1&count=45")
                 .get()
                 .build();
-        Throttler throttler = new Throttler(Main.THROTTLE_MS);
         for (int i = 0; i < count; i++) {
             phaser.register();
             throttler.pause();

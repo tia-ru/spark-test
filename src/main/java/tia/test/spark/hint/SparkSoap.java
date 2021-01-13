@@ -36,8 +36,9 @@ public class SparkSoap implements AutoCloseable {
     private final String login;
     private final String pwd;
     private final IFaxWebServiceSoap spark;
+    private final Throttler throttler;
 
-    public SparkSoap(Meter meter, String login, String pwd) {
+    public SparkSoap(Meter meter, Throttler throttler, String login, String pwd) {
         this.meter = meter;
         this.login = login;
         this.pwd = pwd;
@@ -68,6 +69,7 @@ public class SparkSoap implements AutoCloseable {
 
         Map<String, Object> requestContext = ((BindingProvider) spark).getRequestContext();
         requestContext.put(Message.MAINTAIN_SESSION, Boolean.TRUE);
+        this.throttler = throttler;
     }
 
     public void testSparkSoap(int count) {
@@ -93,7 +95,6 @@ public class SparkSoap implements AutoCloseable {
             logger.error("AuthN failed. Result: {}", result);
             return;
         }
-        Throttler throttler = new Throttler(Main.THROTTLE_MS);
         for (int i = 0; i < count; i++) {
             Holder<String> resultHolder = new Holder<>();
             Holder<String> xmlDataHolder = new Holder<>();

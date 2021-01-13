@@ -23,6 +23,8 @@ import ru.interfax.ifax.IFaxWebServiceSoap;
 
 import javax.xml.ws.BindingProvider;
 import javax.xml.ws.Holder;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -35,25 +37,31 @@ public class SparkSoap implements AutoCloseable {
     private final Meter meter;
     private final String login;
     private final String pwd;
+    private final boolean ssl;
+    private final boolean test;
     private final IFaxWebServiceSoap spark;
     private final Throttler throttler;
 
-    public SparkSoap(Meter meter, Throttler throttler, String login, String pwd) {
+    public SparkSoap(Meter meter, Throttler throttler, String login, String pwd, boolean ssl, boolean test) {
         this.meter = meter;
         this.login = login;
         this.pwd = pwd;
+        this.ssl = ssl;
+        this.test = test;
+        this.throttler = throttler;
 
-        final JaxwsTags jaxwsTags = new JaxwsTags();
-        final TagsCustomizer operationsCustomizer = new JaxwsOperationTagsCustomizer(jaxwsTags);
-        final TagsCustomizer faultsCustomizer = new JaxwsFaultCodeTagsCustomizer(jaxwsTags, new JaxwsFaultCodeProvider());
+        try {
+            final JaxwsTags jaxwsTags = new JaxwsTags();
+            final TagsCustomizer operationsCustomizer = new JaxwsOperationTagsCustomizer(jaxwsTags);
+            final TagsCustomizer faultsCustomizer = new JaxwsFaultCodeTagsCustomizer(jaxwsTags, new JaxwsFaultCodeProvider());
 
-        final TagsProvider tagsProvider = new StandardTagsProvider(new DefaultExceptionClassProvider(), new StandardTags());
-        final MetricsProvider metricsProvider = new MicrometerMetricsProvider(
-                meter.getRegistry(),
-                tagsProvider,
-                Arrays.asList(operationsCustomizer, faultsCustomizer),
-                new DefaultTimedAnnotationProvider(),
-                new MicrometerMetricsProperties());
+            final TagsProvider tagsProvider = new StandardTagsProvider(new DefaultExceptionClassProvider(), new StandardTags());
+            final MetricsProvider metricsProvider = new MicrometerMetricsProvider(
+                    meter.getRegistry(),
+                    tagsProvider,
+                    Arrays.asList(operationsCustomizer, faultsCustomizer),
+                    new DefaultTimedAnnotationProvider(),
+                    new MicrometerMetricsProperties());
 
         /*MicrometerMetricsProvider metricsProvider = new MicrometerMetricsProvider(
                 Meter.REGISTRY,
@@ -62,14 +70,35 @@ public class SparkSoap implements AutoCloseable {
                 new DefaultTimedAnnotationProvider(),
                 new MicrometerMetricsProperties()
         );*/
-        MetricsFeature metricsFeature = new MetricsFeature(metricsProvider);
+            MetricsFeature metricsFeature = new MetricsFeature(metricsProvider);
 
-        IFaxWebService iFaxWebService = new IFaxWebService();
-        spark = iFaxWebService.getIFaxWebServiceSoap(metricsFeature);
+            IFaxWebService iFaxWebService;
+            if (test) {
+                iFaxWebService = new IFaxWebService();
+            } else {
+                URL wsdlLocation;
+                if (ssl){
+                    wsdlLocation = new URL("https://api.spark-interfax.ru/IfaxWebService/iFaxWebService.asmx?wsdl");
+                } else {
+                    wsdlLocation = new URL("http://api.spark-interfax.ru/IfaxWebService/iFaxWebService.asmx?wsdl");
+                }
+                iFaxWebService = new IFaxWebService(wsdlLocation);
+            }
+            spark = iFaxWebService.getIFaxWebServiceSoap(metricsFeature);
 
-        Map<String, Object> requestContext = ((BindingProvider) spark).getRequestContext();
-        requestContext.put(Message.MAINTAIN_SESSION, Boolean.TRUE);
-        this.throttler = throttler;
+            Map<String, Object> requestContext = ((BindingProvider) spark).getRequestContext();
+            requestContext.put(Message.MAINTAIN_SESSION, Boolean.TRUE);
+            if (ssl) {
+                URL ep = new URL((String) requestContext.get(Message.ENDPOINT_ADDRESS));
+                if (!ep.getProtocol().equals("https")){
+                    URL sslEp = new URL("https", ep.getHost(), ep.getPort(), ep.getFile());
+                    requestContext.put(Message.ENDPOINT_ADDRESS, sslEp.toString());
+                }
+            }
+
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void testSparkSoap(int count) {
@@ -91,7 +120,7 @@ public class SparkSoap implements AutoCloseable {
                 org.apache.cxf.message.Message.MAINTAIN_SESSION, Boolean.TRUE);*/
 
         String result = spark.authmethod(login, pwd);
-        if (!"True".equals(result)){
+        if (!"True".equals(result)) {
             logger.error("AuthN failed. Result: {}", result);
             return;
         }

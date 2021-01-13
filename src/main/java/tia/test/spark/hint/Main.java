@@ -100,10 +100,12 @@ public class Main {
 
         boolean ssl = cmd.hasOption(OPT_SSL);
         boolean test = cmd.hasOption(OPT_TEST);
-        if (ssl || !test ){
+
+        /*if (ssl || !test ){
             System.out.println("SSL and Spark production services are not implemented yet.");
             System.exit(1);
-        }
+        }*/
+
         setup();
 
         Throttler throttler = new Throttler(delay);
@@ -130,7 +132,7 @@ public class Main {
             sparkGrpc.close();
 
             System.out.println("===================== SPARK SOAP ===============================================");
-            SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd);
+            SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd, ssl, test);
             sparkSoap.testSparkSoap(reqCount / 5);
             meter.clear();
             sparkSoap.testSparkSoap(reqCount);

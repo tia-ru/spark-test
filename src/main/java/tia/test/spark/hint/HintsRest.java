@@ -21,10 +21,18 @@ import java.util.concurrent.TimeUnit;
 public class HintsRest implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(HintsRest.class);
 
+    private static final String SPARK_HINT_TEST_HOST = "hint-devel.spark-interfax.ru/search";
+    // TODO Узнать URL прода
+    private static final String SPARK_HINT_PROD_HOST = "hint-devel.spark-interfax.ru/search";
+
     private final OkHttpClient okHttpClient;
     private final Throttler throttler;
+    private final boolean ssl;
+    private final boolean test;
 
-    public HintsRest(Meter meter, Throttler throttler) {
+    public HintsRest(Meter meter, Throttler throttler, boolean ssl, boolean test) {
+        this.ssl = ssl;
+        this.test = test;
 
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
         loggingInterceptor.level(HttpLoggingInterceptor.Level.BASIC);
@@ -52,11 +60,27 @@ public class HintsRest implements AutoCloseable {
         /*RequestBody body = RequestBody.create(
                 "{\"query\":\"интер\",\"count\":3,\"objectTypes\":0,\"regions\":[]}",
                 MediaType.get("application/json; charset=UTF-8"));*/
-        Request request = new Request.Builder()
-                //.url("https://hint-devel.spark-interfax.ru/search?query=Иванов&count=25&object_types=1&regions=1,2,3,4,5,6,7,8,9,40,50&turnonhl=true")
-                .url("http://hint-devel.spark-interfax.ru/search?query=Интер&regions=1&count=45")
+        Request request;
+
+        String protocol;
+        if (ssl){
+            protocol = "https:";
+
+        } else {
+            protocol = "http:";
+        }
+        String host;
+        if (test){
+            host = SPARK_HINT_TEST_HOST;
+        } else {
+            host = SPARK_HINT_PROD_HOST;
+        }
+
+        request = new Request.Builder()
+                .url( protocol + "//" + host + "?query=Интер&regions=1&count=45")
                 .get()
                 .build();
+
         for (int i = 0; i < count; i++) {
             phaser.register();
             throttler.pause();

@@ -116,7 +116,7 @@ public class Main {
 
             System.out.println("===================== HINTS REST ===============================================");
             //Warm up
-            HintsRest sparkRest = new HintsRest(meter, throttler);
+            HintsRest sparkRest = new HintsRest(meter, throttler, ssl, test);
             sparkRest.testSparkRest(reqCount / 5);
             meter.clear();
             sparkRest.testSparkRest(reqCount);

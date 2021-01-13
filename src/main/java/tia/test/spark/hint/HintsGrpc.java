@@ -19,10 +19,12 @@ public class HintsGrpc implements AutoCloseable {
     private static final int OBJ_TYPE_COMPANY = 0b0001;
     private static final int OBJ_TYPE_SUBSIDIARY = 0b0010;
     private static final int OBJ_TYPE_ENTREPRENEUR = 0b0100;
-    public static final String SPARK_HINT_TEST_HOST = "hint-devel.spark-interfax.ru";
-    public static final int SPARK_HINT_TEST_PORT = 50099;
-    public static final String SPARK_HINT_PROD_HOST = "hint-devel.spark-interfax.ru";
-    public static final int SPARK_HINT_PROD_PORT = 50099;
+    private static final String SPARK_HINT_TEST_HOST = "hint-devel.spark-interfax.ru";
+    private static final int SPARK_HINT_TEST_PORT = 50099;
+    
+    // TODO Узнать URL прода
+    private static final String SPARK_HINT_PROD_HOST = "hint-devel.spark-interfax.ru";
+    private static final int SPARK_HINT_PROD_PORT = 50099;
 
     private final Meter meter;
     private final boolean ssl;

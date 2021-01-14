@@ -95,6 +95,7 @@ public class SparkSoap implements AutoCloseable {
                     requestContext.put(Message.ENDPOINT_ADDRESS, sslEp.toString());
                 }
             }
+            logger.info("Address: {}", requestContext.get(Message.ENDPOINT_ADDRESS));
 
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);

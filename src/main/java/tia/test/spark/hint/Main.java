@@ -30,24 +30,26 @@ import java.util.logging.Handler;
 import java.util.logging.LogManager;
 
 /**
- * http-proxy 169.254.0.183:8080
- * Для определения прокси исп. сист. св-ва
- *  -Dhttp.proxyHost=169.254.0.183 -Dhttp.proxyPort=8080 -Dhttps.proxyHost=169.254.0.183 -Dhttps.proxyPort=8080
- *
- * Актуальные ссылки и документацию:
- * Тестовый - http://sparkgatetest.interfax.ru/IfaxWebService/ifaxwebservice.asmx
- * Боевой - http://webservicefarm.interfax.ru/IfaxWebService/ifaxwebservice.asmx
- * Боевой с поддержкой SSL - http://api.spark-interfax.ru/IfaxWebService/iFaxWebService.asmx
- *   https://api.spark-interfax.ru/IfaxWebService/
- *
- * Техническая документация доступна по адресу - https://yadi.sk/d/WWV5gArVguQWgg?w=1
- * Стенд сервиса подсказок - http://hint-demo.spark-interfax.ru/
- *
- * Адрес тестового контура сервиса подсказок (gRPC): http://hint-devel.spark-interfax.ru:50099
- * Также мы разработали вариант REST-сервиса: http://hint-devel.spark-interfax.ru/search
- * Для доступа к сервису подсказок авторизация не требуется.
- * Запросы должны осуществляется с тех IP-адресов, которые привязаны к боевому логину API СПАРК клиента.
- * Документация к сервису подсказок: http://hint-demo.spark-interfax.ru/manual/
+ * <br/> Для определения прокси исп. сист. св-ва
+ * <br/> -Dhttp.proxyHost=169.254.0.183 -Dhttp.proxyPort=8080 -Dhttps.proxyHost=169.254.0.183 -Dhttps.proxyPort=8080
+ * <p/>
+ * <h3>  Сервис СПАРК: </h3>
+ * <br/> Тестовый - http://sparkgatetest.interfax.ru/IfaxWebService/ifaxwebservice.asmx
+ * <br/> Боевой - http://webservicefarm.interfax.ru/IfaxWebService/ifaxwebservice.asmx
+ * <br/> Боевой с поддержкой SSL - http://api.spark-interfax.ru/IfaxWebService/iFaxWebService.asmx
+ * <br/> https://api.spark-interfax.ru/IfaxWebService/
+ * <p/>
+ * <h3>  Сервис подсказок: </h3>
+ * <br/> Адрес тестового сервиса подсказок (gRPC): http://hint-devel.spark-interfax.ru:50099
+ * <br/> Адрес тестового сервиса подсказок (REST): http://hint-devel.spark-interfax.ru/search
+ * <br/> Адрес боевого сервиса подсказок (gRPC): http://hint.spark-interfax.ru:50093
+ * <br/> Адрес боевого сервиса подсказок (HTTP-REST): http://hint.spark-interfax.ru/search
+ * <br/> Техническая документация доступна по адресу - https://yadi.sk/d/WWV5gArVguQWgg?w=1
+ * <br/> UI сервиса подсказок - http://hint-demo.spark-interfax.ru/
+ * <br/>
+ * <br/> Для доступа к сервису подсказок авторизация не требуется.
+ * <br/> Запросы должны осуществляется с тех IP-адресов, которые привязаны к боевому логину API СПАРК клиента.
+ * <br/> Документация к сервису подсказок: http://hint-demo.spark-interfax.ru/manual/
  */
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -69,8 +71,7 @@ public class Main {
             .addOption(OPT_TEST, "Use SPARK's public test environment. Otherwise Production is used.")
             .addOption(Option.builder(OPT_REQUESTS).hasArg().desc("Requests count to each service. Default is " + DEFAULT_COUNT + '.').build())
             .addOption(Option.builder(OPT_THROTTLE).hasArg().desc("Requests throttle delay (ms). Default is " + DEFAULT_THROTTLE_MS + " ms.").build())
-            .addOption(OPT_SSL, "Use TLS secured channels.")
-            ;
+            .addOption(OPT_SSL, "Use TLS secured channels.");
 
     public static void main(String[] args) throws Exception {
 
@@ -109,35 +110,44 @@ public class Main {
         setup();
 
         Throttler throttler = new Throttler(delay);
-        try(Meter meter = new Meter()) {
+        try (Meter meter = new Meter()) {
 
             /*System.out.println("===================== YANDEX HTTP ==============================================");
             m.testYandex(3);*/
 
             System.out.println("===================== HINTS REST ===============================================");
             //Warm up
-            HintsRest sparkRest = new HintsRest(meter, throttler, ssl, test);
-            sparkRest.testSparkRest(reqCount / 5);
-            meter.clear();
-            sparkRest.testSparkRest(reqCount);
-            meter.reportAndClear();
-            sparkRest.close();
+
+            try (HintsRest sparkRest = new HintsRest(meter, throttler, ssl, test)) {
+                sparkRest.testSparkRest(reqCount / 5);
+                meter.clear();
+                sparkRest.testSparkRest(reqCount);
+                meter.reportAndClear();
+            } catch (Exception e) {
+                logger.error("HINTS REST unavailable", e);
+            }
 
             System.out.println("===================== HINTS gRPC ===============================================");
-            HintsGrpc sparkGrpc = new HintsGrpc(meter, throttler, ssl, test);
-            sparkGrpc.testSparkGrpc(reqCount / 5);
-            meter.clear();
-            sparkGrpc.testSparkGrpc(reqCount);
-            meter.reportAndClear();
-            sparkGrpc.close();
+
+            try (HintsGrpc sparkGrpc = new HintsGrpc(meter, throttler, ssl, test)) {
+                sparkGrpc.testSparkGrpc(reqCount / 5);
+                meter.clear();
+                sparkGrpc.testSparkGrpc(reqCount);
+                meter.reportAndClear();
+            } catch (Exception e) {
+                logger.error("HINTS gRPC unavailable", e);
+            }
 
             System.out.println("===================== SPARK SOAP ===============================================");
-            SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd, ssl, test);
-            sparkSoap.testSparkSoap(reqCount / 5);
-            meter.clear();
-            sparkSoap.testSparkSoap(reqCount);
-            meter.reportAndClear();
-            sparkSoap.close();
+
+            try (SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd, ssl, test)) {
+                sparkSoap.testSparkSoap(reqCount / 5);
+                meter.clear();
+                sparkSoap.testSparkSoap(reqCount);
+                meter.reportAndClear();
+            } catch (Exception e) {
+                logger.error("SPARK SOAP unavailable", e);
+            }
         }
 
     }
@@ -149,12 +159,12 @@ public class Main {
         formatter.printHelp(
                 "Test SPARK services throughput.\n\n",
                 "java.exe -Dhttp.proxyHost=<ip> -Dhttp.proxyPort=<port> ^\n" +
-                "         -Dhttps.proxyHost=<ip> -Dhttps.proxyPort=<port> ^\n" +
-                "         -jar spark-test-1.0.jar ^\n" +
-                "         -l <login> -p <password> [-ssl] [-test] [-r <count>] [-t <delay>]\n\n",
+                        "         -Dhttps.proxyHost=<ip> -Dhttps.proxyPort=<port> ^\n" +
+                        "         -jar spark-test-1.0.jar ^\n" +
+                        "         -l <login> -p <password> [-ssl] [-test] [-r <count>] [-t <delay>]\n\n",
                 OPTIONS,
                 ""
-                );
+        );
     }
 
     private static void setup() {

@@ -19,16 +19,15 @@ public class HintsGrpc implements AutoCloseable {
     private static final int OBJ_TYPE_COMPANY = 0b0001;
     private static final int OBJ_TYPE_SUBSIDIARY = 0b0010;
     private static final int OBJ_TYPE_ENTREPRENEUR = 0b0100;
+
     private static final String SPARK_HINT_TEST_HOST = "hint-devel.spark-interfax.ru";
     private static final int SPARK_HINT_TEST_PORT = 50099;
-    
-    // TODO Узнать URL прода
-    private static final String SPARK_HINT_PROD_HOST = "hint-devel.spark-interfax.ru";
-    private static final int SPARK_HINT_PROD_PORT = 50099;
+
+    private static final String SPARK_HINT_PROD_HOST = "hint.spark-interfax.ru";
+    private static final int SPARK_HINT_PROD_PORT = 50093;
+    //private static final int SPARK_HINT_PROD_PORT = 50099; // Работает без TLS, но этот порт для разработки
 
     private final Meter meter;
-    private final boolean ssl;
-    private final boolean test;
     private final Throttler throttler;
     private  ManagedChannel channel;
     private  ExtHintServiceGrpc.ExtHintServiceBlockingStub blockingStub;
@@ -36,8 +35,6 @@ public class HintsGrpc implements AutoCloseable {
 
     public HintsGrpc(Meter meter, Throttler throttler, boolean ssl, boolean test) {
         this.meter = meter;
-        this.ssl = ssl;
-        this.test = test;
         ManagedChannelBuilder<?> channelBuilder;
         if (test) {
             channelBuilder = ManagedChannelBuilder.forAddress(SPARK_HINT_TEST_HOST, SPARK_HINT_TEST_PORT);
@@ -53,6 +50,7 @@ public class HintsGrpc implements AutoCloseable {
         blockingStub = ExtHintServiceGrpc.newBlockingStub(channel);
         asyncStub = ExtHintServiceGrpc.newStub(channel);
         this.throttler = throttler;
+        logger.info("Address: {}", channel.authority());
     }
 
     @Override
@@ -89,7 +87,6 @@ public class HintsGrpc implements AutoCloseable {
                     public void onNext(ExtHint.HintResponse hintResponse) {
                         logger.debug("OK. Found: {}", hintResponse.getValuesList().size());
                         /*for (ExtHint.SearchResult result : hintResponse.getValuesList()) {
-                            ExtHint.HintResponse response = hintResponse;
                             logger.debug("OK. {}", result.getFullName());
                         }*/
                     }

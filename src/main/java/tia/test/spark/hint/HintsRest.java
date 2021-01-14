@@ -22,17 +22,15 @@ public class HintsRest implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(HintsRest.class);
 
     private static final String SPARK_HINT_TEST_HOST = "hint-devel.spark-interfax.ru/search";
-    // TODO Узнать URL прода
-    private static final String SPARK_HINT_PROD_HOST = "hint-devel.spark-interfax.ru/search";
+    private static final String SPARK_HINT_PROD_HOST = "hint.spark-interfax.ru/search";
 
     private final OkHttpClient okHttpClient;
     private final Throttler throttler;
-    private final boolean ssl;
-    private final boolean test;
+    Request request;
 
     public HintsRest(Meter meter, Throttler throttler, boolean ssl, boolean test) {
-        this.ssl = ssl;
-        this.test = test;
+
+        this.throttler = throttler;
 
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
         loggingInterceptor.level(HttpLoggingInterceptor.Level.BASIC);
@@ -51,16 +49,6 @@ public class HintsRest implements AutoCloseable {
                 //.addNetworkInterceptor(loggingInterceptor)
                 //.addInterceptor(loggingInterceptor)
                 .build();
-        this.throttler = throttler;
-    }
-
-    public void testSparkRest(int count) {
-
-        Phaser phaser = new Phaser(1);
-        /*RequestBody body = RequestBody.create(
-                "{\"query\":\"интер\",\"count\":3,\"objectTypes\":0,\"regions\":[]}",
-                MediaType.get("application/json; charset=UTF-8"));*/
-        Request request;
 
         String protocol;
         if (ssl){
@@ -80,6 +68,15 @@ public class HintsRest implements AutoCloseable {
                 .url( protocol + "//" + host + "?query=Интер&regions=1&count=45")
                 .get()
                 .build();
+        logger.info("Address: {}", request.url().redact());
+    }
+
+    public void testSparkRest(int count) {
+
+        Phaser phaser = new Phaser(1);
+        /*RequestBody body = RequestBody.create(
+                "{\"query\":\"интер\",\"count\":3,\"objectTypes\":0,\"regions\":[]}",
+                MediaType.get("application/json; charset=UTF-8"));*/
 
         for (int i = 0; i < count; i++) {
             phaser.register();
@@ -94,13 +91,23 @@ public class HintsRest implements AutoCloseable {
 
                         @Override
                         public void onResponse(@NotNull Call call, @NotNull Response response) {
-                            logger.debug("Status {}", response.code());
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Status {}", response.code());
+                                try {
+                                    if (response.code() == 200){
+                                        logger.debug(response.body().string().substring(0, 40) + "...");
+                                    } else {
+                                        logger.debug(response.body().string());
+                                    }
+                                } catch (IOException e) {
+                                    logger.error("Response is not readable", e);
+                                }
+                            }
                             phaser.arriveAndDeregister();
                             response.close();
                         }
                     }
             );
-
         }
         phaser.arriveAndAwaitAdvance();
     }

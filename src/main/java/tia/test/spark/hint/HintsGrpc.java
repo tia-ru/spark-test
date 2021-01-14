@@ -1,5 +1,9 @@
 package tia.test.spark.hint;
 
+import com.alibaba.csp.sentinel.adapter.grpc.SentinelGrpcClientInterceptor;
+import com.alibaba.csp.sentinel.slots.block.RuleConstant;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRuleManager;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -9,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import tia.test.spark.hint.proto.ExtHint;
 import tia.test.spark.hint.proto.ExtHintServiceGrpc;
 
+import java.util.Arrays;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 
@@ -29,28 +34,33 @@ public class HintsGrpc implements AutoCloseable {
 
     private final Meter meter;
     private final Throttler throttler;
-    private  ManagedChannel channel;
-    private  ExtHintServiceGrpc.ExtHintServiceBlockingStub blockingStub;
-    private  ExtHintServiceGrpc.ExtHintServiceStub asyncStub;
+    private ManagedChannel channel;
+    private ExtHintServiceGrpc.ExtHintServiceBlockingStub blockingStub;
+    private ExtHintServiceGrpc.ExtHintServiceStub asyncStub;
 
     public HintsGrpc(Meter meter, Throttler throttler, boolean ssl, boolean test) {
         this.meter = meter;
+        this.throttler = throttler;
+
         ManagedChannelBuilder<?> channelBuilder;
         if (test) {
             channelBuilder = ManagedChannelBuilder.forAddress(SPARK_HINT_TEST_HOST, SPARK_HINT_TEST_PORT);
         } else {
             channelBuilder = ManagedChannelBuilder.forAddress(SPARK_HINT_PROD_HOST, SPARK_HINT_PROD_PORT);
         }
-        if (!ssl){
+        if (!ssl) {
             channelBuilder.usePlaintext();
         }
         channel = channelBuilder
+                .intercept(new SentinelGrpcClientInterceptor())
                 //.intercept(new MetricCollectingClientInterceptor(meter.getRegistry()))
                 .build();
         blockingStub = ExtHintServiceGrpc.newBlockingStub(channel);
         asyncStub = ExtHintServiceGrpc.newStub(channel);
-        this.throttler = throttler;
+
         logger.info("Address: {}", channel.authority());
+
+        initDegradeRule();
     }
 
     @Override
@@ -86,14 +96,15 @@ public class HintsGrpc implements AutoCloseable {
                     @Override
                     public void onNext(ExtHint.HintResponse hintResponse) {
                         logger.debug("OK. Found: {}", hintResponse.getValuesList().size());
-                        /*for (ExtHint.SearchResult result : hintResponse.getValuesList()) {
-                            logger.debug("OK. {}", result.getFullName());
-                        }*/
+                                /*for (ExtHint.SearchResult result : hintResponse.getValuesList()) {
+                                    logger.debug("OK. {}", result.getFullName());
+                                }*/
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
                         logger.debug("Error {}", throwable.getMessage());
+                        //logger.debug("Error ", throwable);
                         phaser.arriveAndDeregister();
                     }
 
@@ -106,8 +117,33 @@ public class HintsGrpc implements AutoCloseable {
 
             phaser.arriveAndAwaitAdvance();
 
-        } catch (Exception e){
+        } catch (Exception e) {
             logger.error("SparkGrpc error", e);
         }
+    }
+
+    /**
+     * <table cellpadding=3>
+     * <th>Field              <th> Description	<th> Default value
+     * <tr>resource           <td> resource name <td>
+     * <tr>count              <td> threshold <td>
+     * <tr>grade              <td> circuit breaking strategy (slow request ratio/error ratio/error count)	<td>slow request ratio
+     * <tr>timeWindow         <td> circuit breaker recovery timeout (in second)
+     * <tr>minRequestAmount   <td> the minimum number of calls that are required (per sliding window period) before the circuit breaker can calculate the ratio or total amount (since 1.7.0)	<td>5
+     * <tr>statIntervalMs     <td> sliding window period (since 1.8.0)	<td> 1000
+     * <tr>slowRatioThreshold <td> threshold of the slow ratio, only available for slow ratio strategy (since 1.8.0)
+     * </table>
+     *  @see <a href="https://github.com/alibaba/Sentinel/wiki/How-to-Use#circuit-breaking-rules-degraderule">Circuit breaking rules</a>*
+     */
+    private void initDegradeRule() {
+        // Must match gRPC method auto generated name
+        String resourceName = ExtHintServiceGrpc.getAutocompleteMethod().getFullMethodName();
+        DegradeRule rule = new DegradeRule(resourceName)
+                .setCount(0.1) // errCount/totalCount for DEGRADE_GRADE_EXCEPTION_RATIO
+                .setTimeWindow(60)
+                .setGrade(RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO)
+                //.setStatIntervalMs(10)
+                ;
+        DegradeRuleManager.loadRules(Arrays.asList(rule));
     }
 }

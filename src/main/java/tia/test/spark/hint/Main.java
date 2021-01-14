@@ -112,20 +112,17 @@ public class Main {
         Throttler throttler = new Throttler(delay);
         try (Meter meter = new Meter()) {
 
-            /*System.out.println("===================== YANDEX HTTP ==============================================");
-            m.testYandex(3);*/
-
             System.out.println("===================== HINTS REST ===============================================");
             //Warm up
 
-            try (HintsRest sparkRest = new HintsRest(meter, throttler, ssl, test)) {
+      /*      try (HintsRest sparkRest = new HintsRest(meter, throttler, ssl, test)) {
                 sparkRest.testSparkRest(reqCount / 5);
                 meter.clear();
                 sparkRest.testSparkRest(reqCount);
                 meter.reportAndClear();
             } catch (Exception e) {
                 logger.error("HINTS REST unavailable", e);
-            }
+            }*/
 
             System.out.println("===================== HINTS gRPC ===============================================");
 
@@ -140,14 +137,14 @@ public class Main {
 
             System.out.println("===================== SPARK SOAP ===============================================");
 
-            try (SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd, ssl, test)) {
+            /*try (SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd, ssl, test)) {
                 sparkSoap.testSparkSoap(reqCount / 5);
                 meter.clear();
                 sparkSoap.testSparkSoap(reqCount);
                 meter.reportAndClear();
             } catch (Exception e) {
                 logger.error("SPARK SOAP unavailable", e);
-            }
+            }*/
         }
 
     }

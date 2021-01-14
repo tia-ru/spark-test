@@ -99,6 +99,16 @@
             <version>6.0.53</version>
             <scope>provided</scope> <!-- not needed at runtime -->
         </dependency>
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-core</artifactId>
+            <version>1.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-grpc-adapter</artifactId>
+            <version>1.8.0</version>
+        </dependency>
         <!--<dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-testing</artifactId>

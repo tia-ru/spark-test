@@ -63,6 +63,9 @@ public class Main {
     private static final String OPT_THROTTLE = "t";
     private static final String OPT_SSL = "ssl";
     private static final String OPT_TEST = "test";
+    private static final String OPT_NOREST = "noRest";
+    private static final String OPT_NOSOAP = "noSoap";
+    private static final String OPT_NOSGRPC = "noGrpc";
 
     private static final Options OPTIONS = new Options()
             //.addOption("l", true,"Login to SOAP service")
@@ -71,7 +74,11 @@ public class Main {
             .addOption(OPT_TEST, "Use SPARK's public test environment. Otherwise Production is used.")
             .addOption(Option.builder(OPT_REQUESTS).hasArg().desc("Requests count to each service. Default is " + DEFAULT_COUNT + '.').build())
             .addOption(Option.builder(OPT_THROTTLE).hasArg().desc("Requests throttle delay (ms). Default is " + DEFAULT_THROTTLE_MS + " ms.").build())
-            .addOption(OPT_SSL, "Use TLS secured channels.");
+            .addOption(OPT_SSL, "Use TLS secured channels.")
+            .addOption(OPT_NOREST, "Disable Hint service REST API tests.")
+            .addOption(OPT_NOSGRPC, "Disable Hint service gRPC API tests.")
+            .addOption(OPT_NOSOAP, "Disable SPARK service SOAP API tests.")
+            ;
 
     public static void main(String[] args) throws Exception {
 
@@ -112,37 +119,43 @@ public class Main {
         Throttler throttler = new Throttler(delay);
         try (Meter meter = new Meter()) {
 
-            System.out.println("===================== HINTS REST ===============================================");
-            //Warm up
-            try (HintsRest sparkRest = new HintsRest(meter, throttler, ssl, test)) {
-                sparkRest.testSparkRest(reqCount / 5);
-                meter.clear();
-                sparkRest.testSparkRest(reqCount);
-                meter.reportAndClear();
-            } catch (Exception e) {
-                logger.error("HINTS REST unavailable", e);
+            if(!cmd.hasOption(OPT_NOREST)) {
+                System.out.println("===================== HINTS REST ===============================================");
+                //Warm up
+                try (HintsRest sparkRest = new HintsRest(meter, throttler, ssl, test)) {
+                    sparkRest.testSparkRest(reqCount / 5);
+                    meter.clear();
+                    sparkRest.testSparkRest(reqCount);
+                    meter.reportAndClear();
+                } catch (Exception e) {
+                    logger.error("HINTS REST unavailable", e);
+                }
             }
 
-            System.out.println("===================== HINTS gRPC ===============================================");
+            if(!cmd.hasOption(OPT_NOSGRPC)) {
+                System.out.println("===================== HINTS gRPC ===============================================");
 
-            try (HintsGrpc sparkGrpc = new HintsGrpc(meter, throttler, ssl, test)) {
-                sparkGrpc.testSparkGrpc(reqCount / 5);
-                meter.clear();
-                sparkGrpc.testSparkGrpc(reqCount);
-                meter.reportAndClear();
-            } catch (Exception e) {
-                logger.error("HINTS gRPC unavailable", e);
+                try (HintsGrpc sparkGrpc = new HintsGrpc(meter, throttler, ssl, test)) {
+                    sparkGrpc.testSparkGrpc(reqCount / 5);
+                    meter.clear();
+                    sparkGrpc.testSparkGrpc(reqCount);
+                    meter.reportAndClear();
+                } catch (Exception e) {
+                    logger.error("HINTS gRPC unavailable", e);
+                }
             }
 
-            System.out.println("===================== SPARK SOAP ===============================================");
+            if(!cmd.hasOption(OPT_NOSOAP)) {
+                System.out.println("===================== SPARK SOAP ===============================================");
 
-            try (SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd, ssl, test)) {
-                sparkSoap.testSparkSoap(reqCount / 5);
-                meter.clear();
-                sparkSoap.testSparkSoap(reqCount);
-                meter.reportAndClear();
-            } catch (Exception e) {
-                logger.error("SPARK SOAP unavailable", e);
+                try (SparkSoap sparkSoap = new SparkSoap(meter, throttler, login, pwd, ssl, test)) {
+                    sparkSoap.testSparkSoap(reqCount / 5);
+                    meter.clear();
+                    sparkSoap.testSparkSoap(reqCount);
+                    meter.reportAndClear();
+                } catch (Exception e) {
+                    logger.error("SPARK SOAP unavailable", e);
+                }
             }
         }
 

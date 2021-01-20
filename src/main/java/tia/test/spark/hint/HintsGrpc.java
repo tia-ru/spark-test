@@ -1,6 +1,6 @@
 package tia.test.spark.hint;
 
-import com.alibaba.csp.sentinel.adapter.grpc.SentinelGrpcClientInterceptor;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRuleManager;
@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tia.test.spark.hint.proto.ExtHint;
 import tia.test.spark.hint.proto.ExtHintServiceGrpc;
+import tia.test.spark.sentinel.SentinelGrpcClientInterceptor2;
 
 import java.util.Arrays;
 import java.util.concurrent.Phaser;
@@ -52,7 +53,7 @@ public class HintsGrpc implements AutoCloseable {
             channelBuilder.usePlaintext();
         }
         channel = channelBuilder
-                .intercept(new SentinelGrpcClientInterceptor())
+                .intercept(new SentinelGrpcClientInterceptor2())
                 //.intercept(new MetricCollectingClientInterceptor(meter.getRegistry()))
                 .build();
         blockingStub = ExtHintServiceGrpc.newBlockingStub(channel);
@@ -103,8 +104,9 @@ public class HintsGrpc implements AutoCloseable {
 
                     @Override
                     public void onError(Throwable throwable) {
-                        logger.debug("Error {}", throwable.getMessage());
-                        //logger.debug("Error ", throwable);
+                        if (!BlockException.isBlockException(throwable)){
+                            logger.debug(throwable.getMessage());
+                        }
                         phaser.arriveAndDeregister();
                     }
 
@@ -137,13 +139,14 @@ public class HintsGrpc implements AutoCloseable {
      */
     private void initDegradeRule() {
         // Must match gRPC method auto generated name
-        String resourceName = ExtHintServiceGrpc.getAutocompleteMethod().getFullMethodName();
-        DegradeRule rule = new DegradeRule(resourceName)
+        //String resourceName = ExtHintServiceGrpc.getAutocompleteMethod().getFullMethodName();
+        String resourceName = ExtHintServiceGrpc.getAutocompleteMethod().getServiceName();
+        DegradeRule exceptionRatioRule = new DegradeRule(resourceName)
                 .setCount(0.1) // errCount/totalCount for DEGRADE_GRADE_EXCEPTION_RATIO
                 .setTimeWindow(60)
                 .setGrade(RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO)
                 //.setStatIntervalMs(10)
                 ;
-        DegradeRuleManager.loadRules(Arrays.asList(rule));
+        DegradeRuleManager.loadRules(Arrays.asList(exceptionRatioRule));
     }
 }

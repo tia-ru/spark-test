@@ -3,7 +3,7 @@
 Проверяется производительность поиска организаций по имени с помощью 
 - HTTP REST протокола сервиса подсказок
 - gRPC протокола сервиса подсказок
-- Метода `GetCompanyListByName` SOAP протокола основного API  
+- Метода `GetCompanyListByName` SOAP протокола основного API 
    
 ### Cборка
 Cборка `spark-test-1.0.jar`:
@@ -12,15 +12,24 @@ Cборка `spark-test-1.0.jar`:
 mvn package
 ```
 ### Запуск
-Для запуска теста в поддиректории target выполнить:
+Для получения краткой справки по параметрам:
+
 ```
-java -Dhttp.proxyHost= -Dhttp.proxyPort= -Dhttps.proxyHost= -Dhttps.proxyPort= -jar spark-test-1.0.jar <login> <password> [<requests count>] 
+java -jar spark-test-1.0.jar 
 ```
-, где 
 
-`proxyHost` и `proxyPort` --  адрес http-прокси имеющего зарегистрированный в СПАРК внешний IP для сервиса подсказок.
+##  Сервис СПАРК:
+ - Тестовый - http://sparkgatetest.interfax.ru/IfaxWebService/ifaxwebservice.asmx
+ - Боевой - http://webservicefarm.interfax.ru/IfaxWebService/ifaxwebservice.asmx
+ - Боевой с поддержкой SSL/TLS - https://api.spark-interfax.ru/IfaxWebService/iFaxWebService.asmx   
+ - Техническая документация: https://yadi.sk/d/WWV5gArVguQWgg?w=1
+ 
+## Сервис подсказок:
+ - Адрес тестового сервиса подсказок (gRPC): http://hint-devel.spark-interfax.ru:50099
+ - Адрес тестового сервиса подсказок (REST): http://hint-devel.spark-interfax.ru/search
+ - Адрес боевого сервиса подсказок (gRPC): http://hint.spark-interfax.ru:50093
+ - Адрес боевого сервиса подсказок (REST): http://hint.spark-interfax.ru/search
+ - Техническая документация: http://hint-demo.spark-interfax.ru/manual/
+ - UI сервиса подсказок: http://hint-demo.spark-interfax.ru/
 
-`requests count` -- количество поисковых запросов к каждому API
-
-`login` `password` -- логин и пароль для доступа к SOAP API СПАРК.
-
+gRPC не поддерживает SSL/TLS на данный момент. 

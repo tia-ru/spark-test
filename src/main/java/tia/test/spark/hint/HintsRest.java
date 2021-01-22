@@ -5,6 +5,7 @@ import okhttp3.CacheControl;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.ConnectionPool;
+import okhttp3.HttpUrl;
 import okhttp3.JavaNetCookieJar;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -16,7 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.CookieManager;
+import java.util.Random;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public class HintsRest implements AutoCloseable {
@@ -27,7 +30,8 @@ public class HintsRest implements AutoCloseable {
 
     private final OkHttpClient okHttpClient;
     private final Throttler throttler;
-    Request request;
+    Request.Builder requestBuilder;
+    private final HttpUrl.Builder urlBuilder;
 
     public HintsRest(Meter meter, Throttler throttler, boolean ssl, boolean test) {
 
@@ -53,10 +57,10 @@ public class HintsRest implements AutoCloseable {
 
         String protocol;
         if (ssl){
-            protocol = "https:";
+            protocol = "https";
 
         } else {
-            protocol = "http:";
+            protocol = "http";
         }
         String host;
         if (test){
@@ -64,15 +68,19 @@ public class HintsRest implements AutoCloseable {
         } else {
             host = SPARK_HINT_PROD_HOST;
         }
+        HttpUrl.parse(protocol + "://" + host).newBuilder();
+        urlBuilder = HttpUrl.parse(protocol + "://" + host)
+                .newBuilder()
+                .addQueryParameter("count", "45");
 
-        request = new Request.Builder()
-                //.url( protocol + "//" + host + "?query=Интер&regions=1&count=45")
-                .url( protocol + "//" + host + "?query=Интер&count=45")
+        requestBuilder = new Request.Builder()
+                //.url( protocol + "://" + host + "?query=Интер&regions=1&count=45")
+                //.url( protocol + "://" + host + "?query=Интер&count=45")
                 .cacheControl(CacheControl.FORCE_NETWORK)
                 //.cacheControl(CacheControl.FORCE_CACHE)
                 .get()
-                .build();
-        logger.info("Address: {}", request.url().redact());
+                ;
+        logger.info("Address: {}", urlBuilder.build().redact());
     }
 
     public void testSparkRest(int count) {
@@ -81,8 +89,15 @@ public class HintsRest implements AutoCloseable {
         /*RequestBody body = RequestBody.create(
                 "{\"query\":\"интер\",\"count\":3,\"objectTypes\":0,\"regions\":[]}",
                 MediaType.get("application/json; charset=UTF-8"));*/
+
         for (int i = 0; i < count; i++) {
             phaser.register();
+
+            urlBuilder.removeAllQueryParameters("query");
+            String randomOrgName = newRandomOrgName();
+            HttpUrl url = urlBuilder.addQueryParameter("query", randomOrgName).build();
+            Request request = requestBuilder.url(url).build();
+
             throttler.pause();
             okHttpClient.newCall(request).enqueue(
                     new Callback() {
@@ -97,10 +112,11 @@ public class HintsRest implements AutoCloseable {
                             if (logger.isDebugEnabled()) {
                                 logger.debug("Status {}", response.code());
                                 try {
+                                    String s = response.body().string();
                                     if (response.code() == 200){
-                                        logger.debug(response.body().string().substring(0, 40) + "...");
+                                        logger.debug(s.length() >= 40 ? s.substring(0, 40) + "..." : s);
                                     } else {
-                                        logger.debug(response.body().string());
+                                        logger.debug(s);
                                     }
                                 } catch (IOException e) {
                                     logger.error("Response is not readable", e);
@@ -113,6 +129,21 @@ public class HintsRest implements AutoCloseable {
             );
         }
         phaser.arriveAndAwaitAdvance();
+    }
+
+    private static String newRandomOrgName() {
+        int leftLimit = 'А'; // russian
+        int rightLimit = 'я'; // russian
+        int delta = rightLimit - leftLimit + 1;
+        Random random = ThreadLocalRandom.current();
+        int len = 3 + random.nextInt(7);
+        StringBuilder buffer = new StringBuilder(len);
+
+        for (int i = 0; i < len; i++) {
+            int randomLimitedInt = leftLimit + random.nextInt(delta);
+            buffer.append((char) randomLimitedInt);
+        }
+        return buffer.toString();
     }
 
     @Override

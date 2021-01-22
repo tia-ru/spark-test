@@ -1,6 +1,7 @@
 package tia.test.spark.hint;
 
 import io.micrometer.core.instrument.binder.okhttp3.OkHttpMetricsEventListener;
+import okhttp3.CacheControl;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.ConnectionPool;
@@ -65,7 +66,10 @@ public class HintsRest implements AutoCloseable {
         }
 
         request = new Request.Builder()
-                .url( protocol + "//" + host + "?query=Интер&regions=1&count=45")
+                //.url( protocol + "//" + host + "?query=Интер&regions=1&count=45")
+                .url( protocol + "//" + host + "?query=Интер&count=45")
+                .cacheControl(CacheControl.FORCE_NETWORK)
+                //.cacheControl(CacheControl.FORCE_CACHE)
                 .get()
                 .build();
         logger.info("Address: {}", request.url().redact());
@@ -77,7 +81,6 @@ public class HintsRest implements AutoCloseable {
         /*RequestBody body = RequestBody.create(
                 "{\"query\":\"интер\",\"count\":3,\"objectTypes\":0,\"regions\":[]}",
                 MediaType.get("application/json; charset=UTF-8"));*/
-
         for (int i = 0; i < count; i++) {
             phaser.register();
             throttler.pause();

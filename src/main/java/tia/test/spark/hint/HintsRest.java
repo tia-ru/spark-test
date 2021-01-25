@@ -46,7 +46,7 @@ public class HintsRest implements AutoCloseable {
                         //.tags(Tags.of("module", "spark"))
                         .build()
                 )
-                .connectionPool(new ConnectionPool(5, 15, TimeUnit.SECONDS))
+                .connectionPool(new ConnectionPool(1, 15, TimeUnit.SECONDS))
                 .cookieJar(new JavaNetCookieJar(new CookieManager()))
                 .hostnameVerifier(
                         (hostname, session) -> true

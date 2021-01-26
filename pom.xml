@@ -110,6 +110,16 @@
             <version>1.8.0</version>
         </dependency>
         <!--<dependency>
+            <groupId>com.google.cloud.bigtable</groupId>
+            <artifactId>bigtable-client-core</artifactId>
+            <version>1.19.0</version>
+        </dependency>-->
+        <dependency>
+            <groupId>com.google.api</groupId>
+            <artifactId>gax-grpc</artifactId>
+            <version>1.60.1</version>
+        </dependency>
+        <!--<dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-testing</artifactId>
             <scope>test</scope>
@@ -214,6 +224,8 @@
             <version>2.28.2</version>
             <scope>test</scope>
         </dependency>
+
+
     </dependencies>
 
     <build>

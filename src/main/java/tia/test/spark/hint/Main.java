@@ -135,7 +135,10 @@ public class Main {
             if(!cmd.hasOption(OPT_NOSGRPC)) {
                 System.out.println("===================== HINTS gRPC ===============================================");
 
-                try (HintsGrpc sparkGrpc = new HintsGrpc(meter, throttler, ssl, test)) {
+                try (
+                    //HintsGrpc sparkGrpc = new HintsGrpc(meter, throttler, ssl, test)
+                    HintsGrpcPooled sparkGrpc = new HintsGrpcPooled(meter, throttler, ssl, test)
+                ) {
                     sparkGrpc.testSparkGrpc(reqCount / 5);
                     meter.clear();
                     sparkGrpc.testSparkGrpc(reqCount);

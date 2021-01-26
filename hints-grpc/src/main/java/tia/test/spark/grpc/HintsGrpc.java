@@ -1,30 +1,28 @@
-package tia.test.spark.hint;
+package tia.test.spark.grpc;
 
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRuleManager;
-import com.google.api.gax.grpc.GrpcTransportChannel;
-import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
-import com.google.api.gax.rpc.NoHeaderProvider;
-import com.google.common.util.concurrent.MoreExecutors;
+import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.client.metric.MetricCollectingClientInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tia.test.spark.common.Meter;
+import tia.test.spark.common.Throttler;
 import tia.test.spark.hint.proto.ExtHint;
 import tia.test.spark.hint.proto.ExtHintServiceGrpc;
 import tia.test.spark.sentinel.SentinelGrpcClientInterceptor2;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 
-public class HintsGrpcPooled implements AutoCloseable {
+public class HintsGrpc implements AutoCloseable {
 
-    private static final Logger logger = LoggerFactory.getLogger(HintsGrpcPooled.class);
+    private static final Logger logger = LoggerFactory.getLogger(HintsGrpc.class);
 
     private static final int OBJ_TYPE_COMPANY = 0b0001;
     private static final int OBJ_TYPE_SUBSIDIARY = 0b0010;
@@ -39,44 +37,31 @@ public class HintsGrpcPooled implements AutoCloseable {
 
     private final Meter meter;
     private final Throttler throttler;
-    private GrpcTransportChannel channel;
+    private ManagedChannel channel;
     private ExtHintServiceGrpc.ExtHintServiceBlockingStub blockingStub;
     private ExtHintServiceGrpc.ExtHintServiceStub asyncStub;
 
-    public HintsGrpcPooled(Meter meter, Throttler throttler, boolean ssl, boolean test) throws IOException {
+    public HintsGrpc(Meter meter, Throttler throttler, boolean ssl, boolean test) {
         this.meter = meter;
         this.throttler = throttler;
 
-        InstantiatingGrpcChannelProvider.Builder providerBuilder = InstantiatingGrpcChannelProvider.newBuilder();
+        ManagedChannelBuilder<?> channelBuilder;
         if (test) {
-            providerBuilder.setEndpoint(SPARK_HINT_TEST_HOST + ':' + SPARK_HINT_TEST_PORT);
+            channelBuilder = ManagedChannelBuilder.forAddress(SPARK_HINT_TEST_HOST, SPARK_HINT_TEST_PORT);
         } else {
-            providerBuilder.setEndpoint(SPARK_HINT_PROD_HOST + ':' + SPARK_HINT_PROD_PORT);
+            channelBuilder = ManagedChannelBuilder.forAddress(SPARK_HINT_PROD_HOST, SPARK_HINT_PROD_PORT);
         }
+        if (!ssl) {
+            channelBuilder.usePlaintext();
+        }
+        channel = channelBuilder
+                .intercept(new SentinelGrpcClientInterceptor2())
+                //.intercept(new MetricCollectingClientInterceptor(meter.getRegistry()))
+                .build();
+        blockingStub = ExtHintServiceGrpc.newBlockingStub(channel);
+        asyncStub = ExtHintServiceGrpc.newStub(channel);
 
-        providerBuilder.setChannelConfigurator((managedChannelBuilder) -> {
-            ManagedChannelBuilder builder = managedChannelBuilder.executor(null);
-            if (!ssl) {
-                builder.usePlaintext();
-            }
-            return builder;
-        });
-
-        providerBuilder
-                .setPoolSize(20)
-                .setInterceptorProvider(()->Arrays.asList(
-                        new SentinelGrpcClientInterceptor2()
-                        //, new MetricCollectingClientInterceptor(meter.getRegistry())
-                ))
-                .setExecutor(MoreExecutors.directExecutor()) // будет переопределён в ChannelConfigurator
-                .setHeaderProvider(new NoHeaderProvider())
-        ;
-        InstantiatingGrpcChannelProvider provider = providerBuilder.build();
-        channel = (GrpcTransportChannel) provider.getTransportChannel();
-        blockingStub = ExtHintServiceGrpc.newBlockingStub(channel.getChannel());
-        asyncStub = ExtHintServiceGrpc.newStub(channel.getChannel());
-
-        logger.info("Address: {}", this.channel.getChannel().authority());
+        logger.info("Address: {}", channel.authority());
 
         initDegradeRule();
     }
@@ -86,8 +71,7 @@ public class HintsGrpcPooled implements AutoCloseable {
         // ManagedChannels use resources like threads and TCP connections. To prevent leaking these
         // resources the channel should be shut down when it will no longer be used. If it may be used
         // again leave it running.
-        channel.shutdown();
-        channel.awaitTermination(5, TimeUnit.SECONDS);
+        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
     public void testSparkGrpc(int count) {

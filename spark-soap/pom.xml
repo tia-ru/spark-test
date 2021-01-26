@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spark-test-parent</artifactId>
+        <groupId>ru.tia.test</groupId>
+        <version>1.1</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>spark-soap</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-frontend-jaxws</artifactId>
+        </dependency>
+        <!-- <dependency>
+             <groupId>org.apache.cxf</groupId>
+             <artifactId>cxf-rt-transports-http</artifactId>
+         </dependency>-->
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <!--<artifactId>cxf-rt-transports-http</artifactId>-->
+            <!--<artifactId>cxf-rt-transports-http-jetty</artifactId>-->
+            <!--<artifactId>cxf-rt-transports-http-netty-client</artifactId>-->  <!-- It produces errors -->
+            <artifactId>cxf-rt-transports-http-undertow</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-features-metrics</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.cxf</groupId>
+                    <artifactId>cxf-bom</artifactId>
+                    <version>3.4.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-codegen-plugin</artifactId>
+                <!-- Metrics for SOAP Client are implemented in not public release 3.4.2 -->
+                <!-- The plugin is not available in 3.4.2 at this time -->
+                <!-- Uncomment when the plugin 3.4.2 be released  -->
+                <!--<version>${cxf.version}</version>-->
+                <version>3.4.2</version>
+                <executions>
+                    <execution>
+                        <id>wsdl2java</id>
+                        <configuration>
+                            <wsdlOptions>
+                                <wsdlOption>
+                                    <asyncMethods/>
+                                    <wsdl>${basedir}/src/main/resources/wsdl/spark.wsdl</wsdl>
+                                    <!--<wsdl>http://sparkgatetest.interfax.ru/iFaxWebService/?wsdl</wsdl>-->
+                                    <wsdlLocation>classpath:wsdl/spark.wsdl</wsdlLocation>
+                                </wsdlOption>
+                            </wsdlOptions>
+                        </configuration>
+                        <goals>
+                            <goal>wsdl2java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <!--<repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>-->
+
+        <!-- Remove when CXF 3.4.2 is released -->
+        <repository>
+            <id>apache.org</id>
+            <url>https://repository.apache.org/service/local/repositories/orgapachecxf-1163/content</url>
+            <releases><enabled>true</enabled></releases>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <!-- Remove when CXF 3.4.2 is released -->
+        <pluginRepository>
+            <id>apache.org</id>
+            <url>https://repository.apache.org/service/local/repositories/orgapachecxf-1163/content</url>
+            <releases><enabled>true</enabled></releases>
+        </pluginRepository>
+    </pluginRepositories>
+</project>

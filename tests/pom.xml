@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spark-test-parent</artifactId>
+        <groupId>ru.tia.test</groupId>
+        <version>1.1</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>tests</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hints-grpc</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hints-rest</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>spark-soap</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+            <version>1.4</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*</exclude>
+                                        <exclude>LICENSE.txt</exclude>
+                                        <exclude>NOTICE.txt</exclude>
+                                        <exclude>CHANGES</exclude>
+                                        <exclude>README</exclude>
+                                        <exclude>builddef.lst</exclude>
+                                        <!--  clutter not needed in jar  -->
+                                        <exclude>resources/grib1/nasa/README*.pdf</exclude>
+                                        <exclude>resources/grib1/**/readme*.txt</exclude>
+                                        <exclude>resources/grib2/**/readme*.txt</exclude>
+                                        <!--
+                                         TIKA-763: Workaround to avoid including LGPL classes
+                                        -->
+                                        <exclude>ucar/nc2/iosp/fysat/Fysat*.class</exclude>
+                                        <exclude>ucar/nc2/dataset/transform/VOceanSG1*class</exclude>
+                                        <exclude>ucar/unidata/geoloc/vertical/OceanSG*.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+
+
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>tia.test.spark.hint.Main</mainClass>
+                                </transformer>
+
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/LICENSE</resource>
+                                    <file>target/classes/META-INF/LICENSE</file>
+                                </transformer>
+
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/NOTICE</resource>
+                                    <file>target/classes/META-INF/NOTICE</file>
+
+                                </transformer>
+
+
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/DEPENDENCIES</resource>
+                                    <file>target/classes/META-INF/DEPENDENCIES</file>
+
+                                </transformer>
+
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/cxf/bus-extensions.txt</resource>
+
+                                </transformer>
+                            </transformers>
+
+                        </configuration>
+                    </execution>
+
+                </executions>
+
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

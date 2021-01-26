@@ -1,4 +1,4 @@
-package tia.test.spark.hint;
+package tia.test.spark.common;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;

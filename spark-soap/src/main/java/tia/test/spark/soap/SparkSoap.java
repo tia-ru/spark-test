@@ -1,4 +1,4 @@
-package tia.test.spark.hint;
+package tia.test.spark.soap;
 
 import org.apache.cxf.message.Message;
 import org.apache.cxf.metrics.MetricsFeature;
@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import ru.interfax.ifax.GetCompanyListByNameResponse;
 import ru.interfax.ifax.IFaxWebService;
 import ru.interfax.ifax.IFaxWebServiceSoap;
+import tia.test.spark.common.Meter;
+import tia.test.spark.common.Throttler;
 
 import javax.xml.ws.BindingProvider;
 import javax.xml.ws.Holder;
@@ -70,7 +72,6 @@ public class SparkSoap implements AutoCloseable {
                 new DefaultTimedAnnotationProvider(),
                 new MicrometerMetricsProperties()
         );*/
-            MetricsFeature metricsFeature = new MetricsFeature(metricsProvider);
 
             IFaxWebService iFaxWebService;
             if (test) {
@@ -84,6 +85,7 @@ public class SparkSoap implements AutoCloseable {
                 }
                 iFaxWebService = new IFaxWebService(wsdlLocation);
             }
+            MetricsFeature metricsFeature = new MetricsFeature(metricsProvider);
             spark = iFaxWebService.getIFaxWebServiceSoap(metricsFeature);
 
             Map<String, Object> requestContext = ((BindingProvider) spark).getRequestContext();
@@ -130,6 +132,8 @@ public class SparkSoap implements AutoCloseable {
             Holder<String> xmlDataHolder = new Holder<>();
             phaser.register();
             throttler.pause();
+
+            //spark.getCompanyContactsAsync();
             spark.getCompanyListByNameAsync("Интер", "1", "0", "1",
                     resultHolder, xmlDataHolder, response -> {
                         try {

@@ -1,4 +1,4 @@
-package tia.test.spark.hint;
+package tia.test.spark.common;
 
 public class Throttler {
     private final int pauseMs;

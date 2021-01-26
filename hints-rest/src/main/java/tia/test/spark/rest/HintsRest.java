@@ -1,4 +1,4 @@
-package tia.test.spark.hint;
+package tia.test.spark.rest;
 
 import io.micrometer.core.instrument.binder.okhttp3.OkHttpMetricsEventListener;
 import okhttp3.CacheControl;
@@ -14,6 +14,8 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tia.test.spark.common.Meter;
+import tia.test.spark.common.Throttler;
 
 import java.io.IOException;
 import java.net.CookieManager;

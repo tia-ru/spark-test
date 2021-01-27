@@ -5,7 +5,7 @@
     <groupId>ru.tia.test</groupId>
     <artifactId>spark-test-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.2</version>
+    <version>1.3-SNAPSHOT</version>
     <modules>
         <module>common</module>
         <module>hints-grpc</module>
@@ -154,6 +154,6 @@
     </build>
     <scm>
         <developerConnection>scm:git:https://github.com/tia-ru/spark-test.git</developerConnection>
-        <tag>1.2</tag>
+        <tag>HEAD</tag>
     </scm>
 </project>

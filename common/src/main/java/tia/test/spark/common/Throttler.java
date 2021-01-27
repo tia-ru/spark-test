@@ -9,9 +9,10 @@ public class Throttler {
     }
     public void pause(){
         long now = System.currentTimeMillis();
-        if (now - prevCallTime < pauseMs){
+        long delta = now - prevCallTime;
+        if (delta < pauseMs){
             try {
-                Thread.sleep(pauseMs - now + prevCallTime);
+                Thread.sleep(pauseMs - delta);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

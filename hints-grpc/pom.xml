@@ -5,7 +5,7 @@
     <parent>
         <artifactId>spark-test-parent</artifactId>
         <groupId>ru.tia.test</groupId>
-        <version>1.1</version>
+        <version>1.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

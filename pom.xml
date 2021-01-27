@@ -7,13 +7,13 @@
     <groupId>ru.tia.test</groupId>
     <artifactId>spark-test-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.1</version>
+    <version>1.2-SNAPSHOT</version>
     <modules>
         <module>common</module>
         <module>hints-grpc</module>
         <module>hints-rest</module>
         <module>spark-soap</module>
-        <module>tests</module>
+        <module>spark-test</module>
     </modules>
 
     <properties>
@@ -132,6 +132,30 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <goals>package</goals>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <localCheckout>true</localCheckout>
+                    <pushChanges>false</pushChanges>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.3</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+    <scm>
+        <developerConnection>scm:git:https://github.com/tia-ru/spark-test.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
 </project>

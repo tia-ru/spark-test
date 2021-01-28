@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Data>
+        <Report ActualDate="2021-01-27">
+            <SparkID>4131007</SparkID>
+            <CompanyType>1</CompanyType>
+            <Status IsActing="1" Code="24" Type="Действующее" GroupId="1" GroupName="Действующее" Date="2021-01-27"/>
+            <EGRPOIncluded>false</EGRPOIncluded>
+            <IsActing>true</IsActing>
+            <DateFirstReg>2002-02-01</DateFirstReg>
+            <ShortNameRus>ООО "ИНТЕР БЫТХИМ"</ShortNameRus>
+            <ShortNameEn>OOO "INTER BYTKHIM"</ShortNameEn>
+            <FullNameRus>ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ "ИНТЕР БЫТХИМ"</FullNameRus>
+            <KPP>771801001</KPP>
+            <OGRN>1037739087650</OGRN>
+            <OKPO>58220901</OKPO>
+            <OKATO Code="45263594000" RegionName="Москва" RegionCode="45"/>
+            <OKOPF Code="65" Name="Общества с ограниченной ответственностью"/>
+            <OKVED2List>
+                <OKVED Code="46"
+                       Name="Торговля оптовая, кроме оптовой торговли автотранспортными средствами и мотоциклами"
+                       IsMain="true"/>
+            </OKVED2List>
+            <CharterCapital>10000</CharterCapital>
+            <LeaderList>
+                <Leader ActualDate="2008-01-01" FIO="Ящишин В Н" Position="генеральный директор"/>
+            </LeaderList>
+            <IndexOfDueDiligence Index="84" IndexDesc="Высокий риск"/>
+            <CompanyWithSameInfo>
+                <TelephoneCount>0</TelephoneCount>
+                <AddressCount>0</AddressCount>
+                <AddressWithoutRoomCount>0</AddressWithoutRoomCount>
+                <AddressNotAffiliatedCount>0</AddressNotAffiliatedCount>
+                <AddressFTSCount>1</AddressFTSCount>
+                <ManagerCountInCountry>1</ManagerCountInCountry>
+                <ManagerCountInRegion>1</ManagerCountInRegion>
+                <ManagerInnCount>0</ManagerInnCount>
+            </CompanyWithSameInfo>
+            <CompanyLiquidatedWithSameInfo>
+                <AddressCount>0</AddressCount>
+                <AddressWithoutRoomCount>0</AddressWithoutRoomCount>
+            </CompanyLiquidatedWithSameInfo>
+        </Report>
+    </Data>
+    <ResultInfo ResultType="True" DateTime="2021-01-27T11:30:11" ExecutionTime="18"/>
+</Response>
